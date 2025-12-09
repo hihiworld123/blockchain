@@ -8,9 +8,11 @@ import (
 	"log"
 	"math/big"
 	"os"
+	"time"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/joho/godotenv"
@@ -22,11 +24,13 @@ var privatekey string
 
 func main() {
 	//部署合约
-	//contractAddress := deploy()
-	//fmt.Println("Contract Address:", contractAddress)
+	contractAddress := deploy()
+	fmt.Println("Contract Address:", contractAddress)
 
 	//写入智能合约
-	//setValue(contractAddress)
+	setValue(contractAddress)
+	//等待区块交易执行完成
+	waitForReceipt(contractAddress)
 	//查询值，等待执行完成后才能查询到值
 	getValue("0x65Bb7CB891AA12688A1ec8F25a237b907Dbb4603")
 }
@@ -43,6 +47,20 @@ func getValue(contractAddress string) {
 		log.Fatal("getValue err: ", err)
 	}
 	fmt.Println("Counter x:", x)
+}
+
+func waitForReceipt(contractAddress string) (*types.Receipt, error) {
+	txHash := common.HexToHash(contractAddress)
+	for {
+		receipt, err := client.TransactionReceipt(context.Background(), txHash)
+		if err != nil {
+			return nil, err
+		}
+		if receipt.Status == types.ReceiptStatusSuccessful {
+			return receipt, nil
+		}
+		time.Sleep(time.Second)
+	}
 }
 
 // 写入智能合约
