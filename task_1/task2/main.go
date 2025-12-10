@@ -28,11 +28,11 @@ func main() {
 	fmt.Println("Contract Address:", contractAddress)
 
 	//写入智能合约
-	setValue(contractAddress)
+	txHash := setValue(contractAddress)
 	//等待区块交易执行完成
-	waitForReceipt(contractAddress)
+	waitForReceipt(txHash)
 	//查询值，等待执行完成后才能查询到值
-	getValue("0x65Bb7CB891AA12688A1ec8F25a237b907Dbb4603")
+	getValue(contractAddress)
 }
 
 func getValue(contractAddress string) {
@@ -49,14 +49,15 @@ func getValue(contractAddress string) {
 	fmt.Println("Counter x:", x)
 }
 
-func waitForReceipt(contractAddress string) (*types.Receipt, error) {
-	txHash := common.HexToHash(contractAddress)
+func waitForReceipt(txHash1 string) (*types.Receipt, error) {
+	txHash := common.HexToHash(txHash1)
 	for {
 		receipt, err := client.TransactionReceipt(context.Background(), txHash)
 		if err != nil {
-			return nil, err
+			fmt.Println("tx is not confirmed yet, err:", err)
+			time.Sleep(1 * time.Second)
 		}
-		if receipt.Status == types.ReceiptStatusSuccessful {
+		if receipt != nil && receipt.Status == types.ReceiptStatusSuccessful {
 			return receipt, nil
 		}
 		time.Sleep(time.Second)
@@ -64,7 +65,7 @@ func waitForReceipt(contractAddress string) (*types.Receipt, error) {
 }
 
 // 写入智能合约
-func setValue(contractAddress string) {
+func setValue(contractAddress string) string {
 
 	address := common.HexToAddress(contractAddress)
 	instance, err := counter.NewCounter(address, client)
@@ -108,6 +109,8 @@ func setValue(contractAddress string) {
 		log.Fatal(err)
 	}
 	fmt.Printf("Tx Hash: %s\n", tx.Hash().Hex())
+
+	return tx.Hash().Hex()
 
 }
 
